@@ -5,7 +5,9 @@ go 1.23.0
 require (
 	github.com/cloudwego/eino v0.3.17
 	github.com/cloudwego/eino-ext/components/model/openai v0.0.0-20250325082802-bcd645201cb5
+	github.com/google/uuid v1.6.0
 	github.com/labstack/echo/v4 v4.11.4
+	github.com/sirupsen/logrus v1.9.3
 )
 
 require (
@@ -39,7 +41,6 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/sashabaranov/go-openai v1.32.5 // indirect
-	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/slongfield/pyfmt v0.0.0-20220222012616-ea85ff4c361f // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
