@@ -53,7 +53,7 @@ func NewServer(ctx context.Context, cfg *Config) (*Server, error) {
 		TimestampFormat: "2006-01-02 15:04:05",
 	})
 
-	logger.Info("初始化服务器")
+	logger.Info("start init server")
 
 	srv := &Server{
 		echo:      echo.New(),
@@ -75,17 +75,17 @@ func NewServer(ctx context.Context, cfg *Config) (*Server, error) {
 	// 注册路由
 	srv.registerRoutes()
 
-	logger.Info("服务器初始化完成")
+	logger.Info("server init success")
 	return srv, nil
 }
 
 // registerRoutes 注册所有路由
 func (s *Server) registerRoutes() {
-	s.logger.Info("注册路由")
+	s.logger.Info("start register routes")
 
 	// 健康检查
 	s.echo.GET("/health", func(c echo.Context) error {
-		s.logger.Debug("处理健康检查请求")
+		s.logger.Debug("health check")
 		return c.JSON(http.StatusOK, map[string]string{
 			"status": "ok",
 		})
@@ -94,53 +94,29 @@ func (s *Server) registerRoutes() {
 	// 聊天接口
 	s.echo.POST("/chat", s.handleChat)
 
-	s.logger.Info("路由注册完成")
+	s.logger.Info("routes registered")
 }
 
 // handleChat 处理聊天请求
 func (s *Server) handleChat(c echo.Context) error {
-	requestID := c.Response().Header().Get(echo.HeaderXRequestID)
-	s.logger.WithFields(logrus.Fields{
-		"request_id": requestID,
-		"client_ip":  c.RealIP(),
-		"method":     c.Request().Method,
-		"path":       c.Request().URL.Path,
-	}).Info("接收到聊天请求")
 
 	var req struct {
 		Messages string `json:"Messages"`
 	}
 
 	if err := c.Bind(&req); err != nil {
-		s.logger.WithFields(logrus.Fields{
-			"request_id": requestID,
-			"error":      err.Error(),
-		}).Error("请求格式无效")
-
 		return c.JSON(http.StatusBadRequest, map[string]string{
 			"error": "invalid request format: " + err.Error(),
 		})
 	}
 
 	if req.Messages == "" {
-		s.logger.WithField("request_id", requestID).Warn("消息内容为空")
 		return c.JSON(http.StatusBadRequest, map[string]string{
 			"error": "messages cannot be empty",
 		})
 	}
-
-	s.logger.WithFields(logrus.Fields{
-		"request_id":     requestID,
-		"message_length": len(req.Messages),
-	}).Debug("开始处理聊天消息")
-
 	// 创建聊天消息并保存到历史记录中
 	chatMsg := chat.CreateMessageFromTemplate(req.Messages, s.chatHistory)
-
-	s.logger.WithFields(logrus.Fields{
-		"request_id":     requestID,
-		"messages_count": len(chatMsg),
-	}).Debug("生成聊天回复")
 
 	result := chat.Generate(context.Background(), s.chatModel, chatMsg)
 
@@ -151,12 +127,6 @@ func (s *Server) handleChat(c echo.Context) error {
 	s.chatHistory = append(s.chatHistory, chatMsg...)
 	s.chatHistory = append(s.chatHistory, result)
 
-	s.logger.WithFields(logrus.Fields{
-		"request_id":      requestID,
-		"history_length":  len(s.chatHistory),
-		"response_length": len(result.String()),
-	}).Info("聊天请求处理完成")
-
 	return c.JSON(http.StatusOK, map[string]string{
 		"message": result.String(),
 	})
@@ -164,18 +134,18 @@ func (s *Server) handleChat(c echo.Context) error {
 
 // Start 启动服务器
 func (s *Server) Start(port string) error {
-	s.logger.WithField("port", port).Info("服务器开始启动")
+	s.logger.WithField("port", port).Info("server start")
 	return s.echo.Start(port)
 }
 
 // Shutdown 优雅关闭服务器
 func (s *Server) Shutdown(ctx context.Context) error {
-	s.logger.Info("服务器开始关闭")
+	s.logger.Info("server shutdown")
 	err := s.echo.Shutdown(ctx)
 	if err != nil {
-		s.logger.WithError(err).Error("服务器关闭出错")
+		s.logger.WithError(err).Error("server close error")
 	} else {
-		s.logger.Info("服务器已成功关闭")
+		s.logger.Info("server close success")
 	}
 	return err
 }
