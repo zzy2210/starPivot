@@ -2,6 +2,12 @@ package model
 
 import "github.com/cloudwego/eino/schema"
 
+type Response struct {
+	Code    int         `json:"code"`
+	Message string      `json:"message"`
+	Data    interface{} `json:"data"`
+}
+
 type SendChatRequest struct {
 	Messages string `json:"Messages"`
 	ChatID   string `json:"ChatID"`
@@ -35,7 +41,7 @@ type GetChatHistoryRequest struct {
 }
 
 // TODO Y1nui: 直接返回eino 的 message 并不合理
-// 需要返回一个更友好的格式
+// 需要返回一个更友好的格式“
 type GetChatHistoryResponse struct {
 	Messages []*schema.Message `json:"Messages"`
 }

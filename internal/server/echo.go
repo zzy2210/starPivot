@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"starPivot/internal/service/chat"
+	"starPivot/internal/service/chat/history"
 
 	eModel "github.com/cloudwego/eino/components/model"
 	"github.com/labstack/echo/v4"
@@ -18,7 +18,7 @@ type Server struct {
 	echo        *echo.Echo
 	chatModel   eModel.ChatModel
 	logger      *logrus.Logger
-	ChatHistory chat.ChatHistoryFactory
+	ChatHistory history.ChatHistoryFactory
 }
 
 // Config 服务器配置选项
@@ -48,7 +48,7 @@ func NewServer(ctx context.Context, cfg *Config) (*Server, error) {
 		logger.SetLevel(logrus.InfoLevel)
 	}
 
-	chatHistory := chat.NewMemoryChatHistory()
+	chatHistory := history.NewMemoryChatHistory()
 
 	// 设置日志格式为JSON
 	logger.SetFormatter(&logrus.JSONFormatter{

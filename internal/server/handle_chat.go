@@ -16,8 +16,10 @@ func (s *Server) handleChat(c echo.Context) error {
 
 	var req model.SendChatRequest
 	if err := c.Bind(&req); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{
-			"error": "invalid request format: " + err.Error(),
+		return c.JSON(http.StatusBadRequest, model.Response{
+			Code:    400,
+			Message: "invalid request format: " + err.Error(),
+			Data:    nil,
 		})
 	}
 
@@ -29,15 +31,19 @@ func (s *Server) handleChat(c echo.Context) error {
 	}
 
 	if req.Messages == "" {
-		return c.JSON(http.StatusBadRequest, map[string]string{
-			"error": "messages cannot be empty",
+		return c.JSON(http.StatusBadRequest, model.Response{
+			Code:    400,
+			Message: "messages cannot be empty",
+			Data:    nil,
 		})
 	}
 
 	chatHistory, err := s.ChatHistory.GetChatHistory(username, chatID)
 	if err != nil && err != model.ErrChatHistoryNotFound {
-		return c.JSON(http.StatusInternalServerError, map[string]string{
-			"error": "failed to get chat history: " + err.Error(),
+		return c.JSON(http.StatusInternalServerError, model.Response{
+			Code:    500,
+			Message: "failed to get chat history: " + err.Error(),
+			Data:    nil,
 		})
 	}
 
@@ -46,9 +52,13 @@ func (s *Server) handleChat(c echo.Context) error {
 
 	result := chat.Generate(context.Background(), s.chatModel, chatMsg)
 
-	return c.JSON(http.StatusOK, model.SendChatResponse{
-		Messages: result.String(),
-		ChatID:   chatID,
+	return c.JSON(http.StatusOK, model.Response{
+		Code:    200,
+		Message: "success",
+		Data: model.SendChatResponse{
+			Messages: result.String(),
+			ChatID:   chatID,
+		},
 	})
 }
 
@@ -61,13 +71,19 @@ func (s *Server) handleNewChat(c echo.Context) error {
 		Content: "You are a helpful assistant.",
 	})
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{
-			"error": "failed to add chat history: " + err.Error(),
+		return c.JSON(http.StatusInternalServerError, model.Response{
+			Code:    500,
+			Message: "failed to add chat history: " + err.Error(),
+			Data:    nil,
 		})
 	}
 
-	return c.JSON(http.StatusOK, model.NewChatResponse{
-		ChatID: chatID,
+	return c.JSON(http.StatusOK, model.Response{
+		Code:    200,
+		Message: "success",
+		Data: model.NewChatResponse{
+			ChatID: chatID,
+		},
 	})
 }
 
@@ -76,12 +92,18 @@ func (s *Server) handleListChatIDs(c echo.Context) error {
 
 	ids, err := s.ChatHistory.ListChatIDByUsername(username)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{
-			"error": "failed to get chat history: " + err.Error(),
+		return c.JSON(http.StatusInternalServerError, model.Response{
+			Code:    500,
+			Message: "failed to get chat history: " + err.Error(),
+			Data:    nil,
 		})
 	}
-	return c.JSON(http.StatusOK, model.ListChatIDsResponse{
-		ChatIDs: ids,
+	return c.JSON(http.StatusOK, model.Response{
+		Code:    200,
+		Message: "success",
+		Data: model.ListChatIDsResponse{
+			ChatIDs: ids,
+		},
 	})
 }
 
@@ -91,12 +113,18 @@ func (s *Server) handleDeleteChat(c echo.Context) error {
 
 	err := s.ChatHistory.DeleteChatHistory(username, chatID)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{
-			"error": "failed to delete chat history: " + err.Error(),
+		return c.JSON(http.StatusInternalServerError, model.Response{
+			Code:    500,
+			Message: "failed to delete chat history: " + err.Error(),
+			Data:    nil,
 		})
 	}
-	return c.JSON(http.StatusOK, model.DeleteChatResponse{
-		Message: "chat history deleted successfully",
+	return c.JSON(http.StatusOK, model.Response{
+		Code:    200,
+		Message: "success",
+		Data: model.DeleteChatResponse{
+			Message: "chat history deleted successfully",
+		},
 	})
 }
 
@@ -106,11 +134,17 @@ func (s *Server) handleGetChatHistory(c echo.Context) error {
 
 	history, err := s.ChatHistory.GetChatHistory(username, chatID)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{
-			"error": "failed to get chat history: " + err.Error(),
+		return c.JSON(http.StatusInternalServerError, model.Response{
+			Code:    500,
+			Message: "failed to get chat history: " + err.Error(),
+			Data:    nil,
 		})
 	}
-	return c.JSON(http.StatusOK, model.GetChatHistoryResponse{
-		Messages: history,
+	return c.JSON(http.StatusOK, model.Response{
+		Code:    200,
+		Message: "success",
+		Data: model.GetChatHistoryResponse{
+			Messages: history,
+		},
 	})
 }
