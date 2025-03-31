@@ -5,11 +5,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"starPivot/internal/model"
 	"starPivot/internal/service/chat"
 
 	eModel "github.com/cloudwego/eino/components/model"
-	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/sirupsen/logrus"
@@ -97,50 +95,13 @@ func (s *Server) registerRoutes() {
 	})
 
 	// 聊天接口
-	s.echo.POST("/chat", s.handleChat)
+	chatRouter := s.echo.Group("/chat")
+	chatRouter.POST("/chat", s.handleChat)
+	chatRouter.GET("/chat/ids", s.handleListChatIDs)
+	chatRouter.DELETE("/chat/:chatID", s.handleDeleteChat)
+	chatRouter.GET("/chat/:chatID", s.handleGetChatHistory)
 
 	s.logger.Info("routes registered")
-}
-
-// handleChat 处理聊天请求
-func (s *Server) handleChat(c echo.Context) error {
-
-	var req model.Request
-	if err := c.Bind(&req); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{
-			"error": "invalid request format: " + err.Error(),
-		})
-	}
-
-	username := c.Request().Header.Get("X-Username")
-
-	chatID := req.ChatID
-	if chatID == "" {
-		chatID = uuid.New().String()
-	}
-
-	if req.Messages == "" {
-		return c.JSON(http.StatusBadRequest, map[string]string{
-			"error": "messages cannot be empty",
-		})
-	}
-
-	chatHistory, err := s.ChatHistory.GetChatHistory(username, chatID)
-	if err != nil && err != model.ErrChatHistoryNotFound {
-		return c.JSON(http.StatusInternalServerError, map[string]string{
-			"error": "failed to get chat history: " + err.Error(),
-		})
-	}
-
-	// 创建聊天消息并保存到历史记录中
-	chatMsg := chat.CreateMessageFromTemplate(req.Messages, chatHistory)
-
-	result := chat.Generate(context.Background(), s.chatModel, chatMsg)
-
-	return c.JSON(http.StatusOK, model.Response{
-		Messages: result.String(),
-		ChatID:   chatID,
-	})
 }
 
 // Start 启动服务器
