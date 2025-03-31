@@ -6,6 +6,7 @@ import (
 	"starPivot/internal/model"
 	"starPivot/internal/service/chat"
 
+	"github.com/cloudwego/eino/schema"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 )
@@ -13,7 +14,7 @@ import (
 // handleChat 处理聊天请求
 func (s *Server) handleChat(c echo.Context) error {
 
-	var req model.Request
+	var req model.SendChatRequest
 	if err := c.Bind(&req); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{
 			"error": "invalid request format: " + err.Error(),
@@ -45,9 +46,28 @@ func (s *Server) handleChat(c echo.Context) error {
 
 	result := chat.Generate(context.Background(), s.chatModel, chatMsg)
 
-	return c.JSON(http.StatusOK, model.Response{
+	return c.JSON(http.StatusOK, model.SendChatResponse{
 		Messages: result.String(),
 		ChatID:   chatID,
+	})
+}
+
+func (s *Server) handleNewChat(c echo.Context) error {
+	username := c.Request().Header.Get("X-Username")
+	chatID := uuid.New().String()
+
+	err := s.ChatHistory.AddChatHistory(username, chatID, &schema.Message{
+		Role:    "system",
+		Content: "You are a helpful assistant.",
+	})
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "failed to add chat history: " + err.Error(),
+		})
+	}
+
+	return c.JSON(http.StatusOK, model.NewChatResponse{
+		ChatID: chatID,
 	})
 }
 
@@ -60,7 +80,9 @@ func (s *Server) handleListChatIDs(c echo.Context) error {
 			"error": "failed to get chat history: " + err.Error(),
 		})
 	}
-	return c.JSON(http.StatusOK, ids)
+	return c.JSON(http.StatusOK, model.ListChatIDsResponse{
+		ChatIDs: ids,
+	})
 }
 
 func (s *Server) handleDeleteChat(c echo.Context) error {
@@ -73,8 +95,8 @@ func (s *Server) handleDeleteChat(c echo.Context) error {
 			"error": "failed to delete chat history: " + err.Error(),
 		})
 	}
-	return c.JSON(http.StatusOK, map[string]string{
-		"message": "chat history deleted successfully",
+	return c.JSON(http.StatusOK, model.DeleteChatResponse{
+		Message: "chat history deleted successfully",
 	})
 }
 
@@ -88,5 +110,7 @@ func (s *Server) handleGetChatHistory(c echo.Context) error {
 			"error": "failed to get chat history: " + err.Error(),
 		})
 	}
-	return c.JSON(http.StatusOK, history)
+	return c.JSON(http.StatusOK, model.GetChatHistoryResponse{
+		Messages: history,
+	})
 }

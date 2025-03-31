@@ -70,7 +70,7 @@ func NewServer(ctx context.Context, cfg *Config) (*Server, error) {
 
 	// 配置CORS，允许前端访问
 	srv.echo.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins: []string{"http://localhost:3000", "http://127.0.0.1:3000"},
+		AllowOrigins: []string{"http://localhost:3000", "http://127.0.0.1:3000", "http://192.168.50.241:3000"},
 		AllowMethods: []string{http.MethodGet, http.MethodPost, http.MethodOptions},
 		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept},
 	}))
@@ -98,6 +98,7 @@ func (s *Server) registerRoutes() {
 	chatRouter := s.echo.Group("/chat")
 	chatRouter.POST("/chat", s.handleChat)
 	chatRouter.GET("/chat/ids", s.handleListChatIDs)
+	chatRouter.POST("/chat/new", s.handleNewChat)
 	chatRouter.DELETE("/chat/:chatID", s.handleDeleteChat)
 	chatRouter.GET("/chat/:chatID", s.handleGetChatHistory)
 
