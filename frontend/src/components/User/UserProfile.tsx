@@ -3,21 +3,31 @@ import './UserProfile.css';
 
 interface UserProfileProps {
   onUsernameChange?: (username: string) => void;
+  username?: string;
 }
 
-const UserProfile: React.FC<UserProfileProps> = ({ onUsernameChange }) => {
-  const [username, setUsername] = useState<string>('');
+const UserProfile: React.FC<UserProfileProps> = ({ onUsernameChange, username: propUsername }) => {
+  const [username, setUsername] = useState<string>(propUsername || '');
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [tempUsername, setTempUsername] = useState<string>('');
 
-  // 组件加载时从localStorage获取用户名
+  // 当props中的username变化时更新状态
   useEffect(() => {
-    const savedUsername = localStorage.getItem('username');
-    if (savedUsername) {
-      setUsername(savedUsername);
-      onUsernameChange && onUsernameChange(savedUsername);
+    if (propUsername && propUsername !== username) {
+      setUsername(propUsername);
     }
-  }, [onUsernameChange]);
+  }, [propUsername, username]);
+
+  // 组件加载时从localStorage获取用户名，仅在没有传入username props时使用
+  useEffect(() => {
+    if (!propUsername) {
+      const savedUsername = localStorage.getItem('username');
+      if (savedUsername) {
+        setUsername(savedUsername);
+        onUsernameChange && onUsernameChange(savedUsername);
+      }
+    }
+  }, [onUsernameChange, propUsername]);
 
   // 保存用户名到localStorage
   const saveUsername = () => {

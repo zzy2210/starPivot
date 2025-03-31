@@ -34,6 +34,27 @@
   border-radius: 5px;
 }
 
+/* 错误消息样式 */
+.error-message {
+  margin: 10px 20px;
+  padding: 10px 15px;
+  background-color: #ffebee;
+  color: #c62828;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  text-align: center;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.error-message p {
+  margin: 0;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 .chat-messages {
   flex: 1;
   overflow-y: auto;

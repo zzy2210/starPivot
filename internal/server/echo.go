@@ -68,11 +68,13 @@ func NewServer(ctx context.Context, cfg *Config) (*Server, error) {
 	srv.echo.Use(middleware.Logger())
 	srv.echo.Use(middleware.Recover())
 
-	// 配置CORS，允许前端访问
+	//配置CORS，允许前端访问
 	srv.echo.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins: []string{"http://localhost:3000", "http://127.0.0.1:3000", "http://192.168.50.241:3000"},
-		AllowMethods: []string{http.MethodGet, http.MethodPost, http.MethodOptions},
-		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept},
+		AllowOrigins:     []string{"http://localhost:3000", "http://127.0.0.1:3000", "http://192.168.50.241:3000"},
+		AllowMethods:     []string{http.MethodGet, http.MethodPost, http.MethodOptions, http.MethodDelete},
+		AllowHeaders:     []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, "X-Username"},
+		ExposeHeaders:    []string{"Authorization"},
+		AllowCredentials: true,
 	}))
 
 	// 注册路由
@@ -97,10 +99,10 @@ func (s *Server) registerRoutes() {
 	// 聊天接口
 	chatRouter := s.echo.Group("/chat")
 	chatRouter.POST("/chat", s.handleChat)
-	chatRouter.GET("/chat/ids", s.handleListChatIDs)
-	chatRouter.POST("/chat/new", s.handleNewChat)
-	chatRouter.DELETE("/chat/:chatID", s.handleDeleteChat)
-	chatRouter.GET("/chat/:chatID", s.handleGetChatHistory)
+	chatRouter.GET("/ids", s.handleListChatIDs)
+	chatRouter.POST("/new", s.handleNewChat)
+	chatRouter.DELETE("/:chatID", s.handleDeleteChat)
+	chatRouter.GET("/:chatID", s.handleGetChatHistory)
 
 	s.logger.Info("routes registered")
 }

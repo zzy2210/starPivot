@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Header from './components/Layout/Header';
 import Sidebar from './components/Layout/Sidebar';
 import ChatBox from './components/Chat/ChatBox';
+import ChatList from './components/Chat/ChatList';
 import { checkHealth } from './services/api';
 import './App.css';
 
@@ -13,13 +14,36 @@ function App() {
   // 处理用户名变更
   const handleUsernameChange = (newUsername: string) => {
     setUsername(newUsername);
+    localStorage.setItem('username', newUsername);
   };
 
   // 处理聊天选择
   const handleSelectChat = (chatId: string) => {
     setSelectedChatId(chatId);
   };
+  
+  // 处理新聊天创建（从ChatBox组件调用）
+  const handleChatCreated = (chatId: string) => {
+    setSelectedChatId(chatId);
+  };
 
+  // 处理聊天删除
+  const handleChatDeleted = () => {
+    setSelectedChatId(null);
+  };
+
+  // 初始化用户名
+  useEffect(() => {
+    const storedUsername = localStorage.getItem('username');
+    if (storedUsername) {
+      setUsername(storedUsername);
+    } else {
+      setUsername('匿名用户');
+      localStorage.setItem('username', '匿名用户');
+    }
+  }, []);
+
+  // 检查服务器健康状态
   useEffect(() => {
     const checkServerHealth = async () => {
       try {
@@ -41,7 +65,7 @@ function App() {
 
   return (
     <div className="App">
-      <Header onUsernameChange={handleUsernameChange} />
+      <Header onUsernameChange={handleUsernameChange} username={username} />
       
       <div className="server-status-container">
         {isServerConnected === null ? (
@@ -59,15 +83,17 @@ function App() {
         {isServerConnected !== false && (
           <>
             <div className="sidebar-container">
-              <Sidebar 
+              <ChatList 
                 onSelectChat={handleSelectChat}
                 selectedChatId={selectedChatId}
+                onChatDeleted={handleChatDeleted}
               />
             </div>
             <div className="chat-box-container">
               <ChatBox 
                 username={username} 
                 chatId={selectedChatId || undefined}
+                onChatCreated={handleChatCreated}
               />
             </div>
           </>
