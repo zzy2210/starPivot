@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"starPivot/internal/config"
 	"starPivot/internal/model"
 	"starPivot/internal/service/chat/history"
 
@@ -12,46 +13,36 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/sirupsen/logrus"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 // Server 封装了 Echo 服务器和 ChatModel
 type Server struct {
-	echo        *echo.Echo
-	chatModel   eModel.ChatModel
-	logger      *logrus.Logger
-	ChatHistory history.ChatHistoryFactory
-	ChatConfig  model.BaseAIConfig
-}
+	echo       *echo.Echo
+	logger     *logrus.Logger
+	cfg        *config.Config
+	ChatConfig *model.BaseAIConfig
 
-// Config 服务器配置选项
-type Config struct {
-	Port      string
-	ChatModel eModel.ChatModel
-	LogLevel  logrus.Level
+	chatModel   eModel.ChatModel
+	ChatHistory history.ChatHistoryFactory
 }
 
 // NewServer 创建一个新的服务器实例
-func NewServer(ctx context.Context, cfg *Config) (*Server, error) {
+func NewServer(ctx context.Context, cfg *config.Config) (*Server, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("config cannot be nil")
-	}
-
-	if cfg.ChatModel == nil {
-		return nil, fmt.Errorf("chat model cannot be nil")
 	}
 
 	// 初始化日志
 	logger := logrus.New()
 
 	// 设置日志级别，如果未指定则默认为Info级别
-	if cfg.LogLevel != 0 {
-		logger.SetLevel(cfg.LogLevel)
+	if cfg.ServerConfig.LogLevel != 0 {
+		logger.SetLevel(cfg.ServerConfig.LogLevel)
 	} else {
 		logger.SetLevel(logrus.InfoLevel)
 	}
-
-	chatHistory := history.NewMemoryChatHistory()
-
 	// 设置日志格式为JSON
 	logger.SetFormatter(&logrus.JSONFormatter{
 		TimestampFormat: "2006-01-02 15:04:05",
@@ -60,10 +51,13 @@ func NewServer(ctx context.Context, cfg *Config) (*Server, error) {
 	logger.Info("start init server")
 
 	srv := &Server{
-		echo:        echo.New(),
-		chatModel:   cfg.ChatModel,
-		logger:      logger,
-		ChatHistory: chatHistory,
+		echo:   echo.New(),
+		logger: logger,
+		cfg:    cfg,
+	}
+
+	if err := srv.SetHistoryStorage(); err != nil {
+		return nil, err
 	}
 
 	// 配置中间件
@@ -84,6 +78,29 @@ func NewServer(ctx context.Context, cfg *Config) (*Server, error) {
 
 	logger.Info("server init success")
 	return srv, nil
+}
+
+func (s *Server) SetHistoryStorage() error {
+	switch s.cfg.ServerConfig.HistoryStorage {
+	case "memory":
+		s.ChatHistory = history.NewMemoryChatHistory()
+	case "database":
+		dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+			s.cfg.DataBaseConfig.Host,
+			s.cfg.DataBaseConfig.Port,
+			s.cfg.DataBaseConfig.User,
+			s.cfg.DataBaseConfig.Password,
+			s.cfg.DataBaseConfig.DBName,
+		)
+		db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+		if err != nil {
+			return fmt.Errorf("failed to connect database: %v", err)
+		}
+		s.ChatHistory = history.NewDatabaseChatHistory(db)
+	default:
+		return fmt.Errorf("invalid history storage: %s", s.cfg.ServerConfig.HistoryStorage)
+	}
+	return nil
 }
 
 // registerRoutes 注册所有路由
@@ -128,9 +145,9 @@ func (s *Server) chatMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 }
 
 // Start 启动服务器
-func (s *Server) Start(port string) error {
-	s.logger.WithField("port", port).Info("server start")
-	return s.echo.Start(port)
+func (s *Server) Start() error {
+	s.logger.WithField("port", s.cfg.ServerConfig.Port).Info("server start")
+	return s.echo.Start(s.cfg.ServerConfig.Port)
 }
 
 // Shutdown 优雅关闭服务器

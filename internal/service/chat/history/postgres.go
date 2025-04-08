@@ -14,7 +14,7 @@ type PostgresChatHistory struct {
 	db *gorm.DB
 }
 
-func NewPostgresChatHistory(db *gorm.DB) *PostgresChatHistory {
+func NewDatabaseChatHistory(db *gorm.DB) *PostgresChatHistory {
 	return &PostgresChatHistory{db: db}
 }
 

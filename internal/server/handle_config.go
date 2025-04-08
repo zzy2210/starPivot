@@ -21,7 +21,7 @@ func (s *Server) handleConfig(c echo.Context) error {
 
 	switch req.ModelType {
 	case "openai":
-		s.ChatConfig = model.BaseAIConfig{
+		s.ChatConfig = &model.BaseAIConfig{
 			BaseURL: req.BaseURL,
 			Model:   req.Model,
 			APIKey:  req.APIKey,

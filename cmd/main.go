@@ -7,23 +7,20 @@ import (
 	"os/signal"
 	"syscall"
 
+	"starPivot/internal/config"
 	"starPivot/internal/server"
-	"starPivot/internal/service/chat"
 )
 
 func main() {
 	// 创建上下文
 	ctx := context.Background()
 
-	// 创建聊天模型
-	chatModel := chat.CreateOPenAIChatModel(ctx)
-
 	// 创建服务器配置
-	cfg := &server.Config{
-		Port:      ":8080",
-		ChatModel: chatModel,
+	// 服务器配置从 confing.ini 文件中读取
+	cfg, err := config.LoadConfig("config.ini")
+	if err != nil {
+		log.Fatalf("Failed to load server config: %v", err)
 	}
-
 	// 创建服务器
 	srv, err := server.NewServer(ctx, cfg)
 	if err != nil {
@@ -32,7 +29,7 @@ func main() {
 
 	// 启动服务器
 	go func() {
-		if err := srv.Start(cfg.Port); err != nil {
+		if err := srv.Start(); err != nil {
 			log.Printf("Server error: %v", err)
 		}
 	}()
