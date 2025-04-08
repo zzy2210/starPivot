@@ -53,3 +53,11 @@ type NewChatRequest struct {
 type NewChatResponse struct {
 	ChatID string `json:"ChatID"`
 }
+
+type ConfigRequest struct {
+	Model   string `json:"Model"`
+	BaseURL string `json:"BaseURL"`
+	APIKey  string `json:"APIKey"`
+	// 服务提供商,当前只支持 openai，后续考虑 ds，ollama 等
+	ModelType string `json:"ModelType"`
+}

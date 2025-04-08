@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"starPivot/internal/model"
 	"starPivot/internal/service/chat/history"
 
 	eModel "github.com/cloudwego/eino/components/model"
@@ -19,6 +20,7 @@ type Server struct {
 	chatModel   eModel.ChatModel
 	logger      *logrus.Logger
 	ChatHistory history.ChatHistoryFactory
+	ChatConfig  model.BaseAIConfig
 }
 
 // Config 服务器配置选项
@@ -98,13 +100,31 @@ func (s *Server) registerRoutes() {
 
 	// 聊天接口
 	chatRouter := s.echo.Group("/chat")
+	chatRouter.Use(s.chatMiddleware)
 	chatRouter.POST("/chat", s.handleChat)
 	chatRouter.GET("/ids", s.handleListChatIDs)
 	chatRouter.POST("/new", s.handleNewChat)
 	chatRouter.DELETE("/:chatID", s.handleDeleteChat)
 	chatRouter.GET("/:chatID", s.handleGetChatHistory)
 
+	// 配置接口
+	chatRouter.POST("/config", s.handleConfig)
+
 	s.logger.Info("routes registered")
+}
+
+// 中间件，/chat开头的路由，需要验证是否配置了 chatModel
+func (s *Server) chatMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		if s.chatModel == nil {
+			return c.JSON(http.StatusOK, model.Response{
+				Code:    http.StatusInternalServerError,
+				Message: "chat model not configured",
+				Data:    nil,
+			})
+		}
+		return next(c)
+	}
 }
 
 // Start 启动服务器
