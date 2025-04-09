@@ -1,8 +1,6 @@
 package history
 
 import (
-	"fmt"
-
 	"starPivot/internal/model"
 
 	"github.com/cloudwego/eino/schema"
@@ -44,12 +42,4 @@ func (h *MemoryChatHistory) ListChatIDByUsername(username string) ([]string, err
 		chatIDs = append(chatIDs, chatID)
 	}
 	return chatIDs, nil
-}
-
-func (h *MemoryChatHistory) ListChatHistoryByUsername(username string) ([]*schema.Message, error) {
-	chatHistory, ok := h.chatHistoryWithID[username]
-	if !ok {
-		return nil, fmt.Errorf("chat history not found")
-	}
-	return chatHistory, nil
 }
