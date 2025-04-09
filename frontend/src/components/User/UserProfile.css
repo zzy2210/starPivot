@@ -1,0 +1,119 @@
+.user-profile {
+  padding: 10px;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  background-color: #f8f9fa;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.username-prompt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px;
+}
+
+.username-prompt p {
+  margin: 0 0 10px 0;
+  font-size: 14px;
+  color: #666;
+}
+
+.set-username-btn {
+  background-color: #1976d2;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 15px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.set-username-btn:hover {
+  background-color: #1565c0;
+}
+
+.username-display {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 5px;
+}
+
+.username {
+  font-weight: 500;
+  font-size: 15px;
+  color: #333;
+}
+
+.edit-username-btn {
+  background: none;
+  border: none;
+  color: #1976d2;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 3px 8px;
+}
+
+.edit-username-btn:hover {
+  text-decoration: underline;
+}
+
+.username-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 8px 5px;
+}
+
+.username-form input {
+  padding: 8px 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  width: 100%;
+}
+
+.username-form input:focus {
+  border-color: #1976d2;
+  outline: none;
+}
+
+.form-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.form-buttons button {
+  flex: 1;
+  padding: 8px 0;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.form-buttons button[type="submit"] {
+  background-color: #1976d2;
+  color: white;
+}
+
+.form-buttons button[type="submit"]:hover:not(:disabled) {
+  background-color: #1565c0;
+}
+
+.form-buttons button[type="submit"]:disabled {
+  background-color: #bbdefb;
+  cursor: not-allowed;
+}
+
+.cancel-btn {
+  background-color: #f1f1f1;
+  color: #333;
+}
+
+.cancel-btn:hover {
+  background-color: #e0e0e0;
+} 

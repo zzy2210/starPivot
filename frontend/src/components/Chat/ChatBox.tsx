@@ -1,18 +1,59 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { sendChatMessage } from '../../services/api';
+import { sendChatMessage, getChatById, Message as ApiMessage } from '../../services/api';
 import './ChatBox.css';
 
 interface Message {
   id: number;
   text: string;
   isUser: boolean;
+  timestamp?: number;
 }
 
-const ChatBox: React.FC = () => {
+interface ChatBoxProps {
+  username: string;
+  chatId?: string;
+  onChatCreated?: (chatId: string) => void;
+}
+
+const ChatBox: React.FC<ChatBoxProps> = ({ username, chatId, onChatCreated }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isFirstLoad, setIsFirstLoad] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // 加载特定聊天的消息
+  useEffect(() => {
+    if (chatId) {
+      const loadChatMessages = async () => {
+        setIsLoading(true);
+        setError(null);
+        try {
+          const chatData = await getChatById(chatId);
+          if (chatData.Messages) {
+            setMessages(chatData.Messages);
+          } else {
+            setMessages([]);
+          }
+        } catch (error) {
+          console.error(`Failed to load chat ${chatId}:`, error);
+          setError("加载聊天记录失败，请稍后再试");
+          setMessages([]);
+        } finally {
+          setIsLoading(false);
+          setIsFirstLoad(false);
+        }
+      };
+
+      loadChatMessages();
+    } else {
+      // 如果没有聊天ID，则清空消息
+      setMessages([]);
+      setIsFirstLoad(false);
+      setError(null);
+    }
+  }, [chatId]);
 
   // 自动滚动到最新消息
   useEffect(() => {
@@ -33,32 +74,42 @@ const ChatBox: React.FC = () => {
       id: Date.now(),
       text: inputValue,
       isUser: true,
+      timestamp: Date.now(),
     };
     
     setMessages((prevMessages) => [...prevMessages, userMessage]);
     setInputValue('');
     setIsLoading(true);
+    setError(null);
     
     try {
       // 发送消息到后端
-      const response = await sendChatMessage(inputValue);
+      const response = await sendChatMessage(inputValue, chatId);
+      
+      // 如果这是一个新聊天（没有传递chatId参数），通知父组件新聊天ID
+      if (!chatId && response.chatId && onChatCreated) {
+        onChatCreated(response.chatId);
+      }
       
       // 添加AI响应
       const aiMessage: Message = {
         id: Date.now() + 1,
         text: response.message,
         isUser: false,
+        timestamp: Date.now(),
       };
       
       setMessages((prevMessages) => [...prevMessages, aiMessage]);
     } catch (error) {
       console.error('Failed to get response:', error);
+      setError("发送消息失败，请稍后再试");
       
       // 添加错误消息
       const errorMessage: Message = {
         id: Date.now() + 1,
         text: "抱歉，发生了错误，请稍后再试。",
         isUser: false,
+        timestamp: Date.now(),
       };
       
       setMessages((prevMessages) => [...prevMessages, errorMessage]);
@@ -71,10 +122,21 @@ const ChatBox: React.FC = () => {
     <div className="chat-container">
       <div className="chat-header">
         <h2>StarPivot 聊天</h2>
+        {username && <div className="current-user">当前用户: {username}</div>}
       </div>
       
+      {error && (
+        <div className="error-message">
+          <p>{error}</p>
+        </div>
+      )}
+      
       <div className="chat-messages">
-        {messages.length === 0 ? (
+        {isFirstLoad && isLoading ? (
+          <div className="loading-chat">
+            <p>加载聊天记录中...</p>
+          </div>
+        ) : messages.length === 0 ? (
           <div className="empty-state">
             <p>发送一条消息开始聊天！</p>
           </div>
@@ -86,11 +148,16 @@ const ChatBox: React.FC = () => {
             >
               <div className="message-content">
                 <p>{message.text}</p>
+                {message.timestamp && (
+                  <div className="message-timestamp">
+                    {new Date(message.timestamp).toLocaleTimeString()}
+                  </div>
+                )}
               </div>
             </div>
           ))
         )}
-        {isLoading && (
+        {isLoading && !isFirstLoad && (
           <div className="message ai-message">
             <div className="message-content loading">
               <p>正在思考...</p>
