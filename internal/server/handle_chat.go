@@ -46,43 +46,40 @@ func (s *Server) handleChat(c echo.Context) error {
 			Data:    nil,
 		})
 	}
+	if err == model.ErrChatHistoryNotFound {
+		chatHistory = make([]*schema.Message, 0)
+	}
 
 	// 创建聊天消息并保存到历史记录中
 	chatMsg := chat.CreateMessageFromTemplate(req.Messages, chatHistory)
 
 	result := chat.Generate(context.Background(), s.chatModel, chatMsg)
 
-	return c.JSON(http.StatusOK, model.Response{
-		Code:    200,
-		Message: "success",
-		Data: model.SendChatResponse{
-			Messages: result.String(),
-			ChatID:   chatID,
-		},
-	})
-}
-
-func (s *Server) handleNewChat(c echo.Context) error {
-	username := c.Request().Header.Get("X-Username")
-	chatID := uuid.New().String()
-
-	err := s.ChatHistory.AddChatHistory(username, chatID, &schema.Message{
-		Role:    "system",
-		Content: "You are a helpful assistant.",
-	})
-	if err != nil {
+	// 保存用户输入
+	if err = s.ChatHistory.AddChatHistory(username, chatID, &schema.Message{
+		Role:    schema.User,
+		Content: req.Messages,
+	}); err != nil {
 		return c.JSON(http.StatusInternalServerError, model.Response{
 			Code:    500,
 			Message: "failed to add chat history: " + err.Error(),
-			Data:    nil,
+		})
+	}
+
+	// 保留结果
+	if err = s.ChatHistory.AddChatHistory(username, chatID, result); err != nil {
+		return c.JSON(http.StatusInternalServerError, model.Response{
+			Code:    500,
+			Message: "failed to add chat history: " + err.Error(),
 		})
 	}
 
 	return c.JSON(http.StatusOK, model.Response{
 		Code:    200,
 		Message: "success",
-		Data: model.NewChatResponse{
-			ChatID: chatID,
+		Data: model.SendChatResponse{
+			Messages: result.Content,
+			ChatID:   chatID,
 		},
 	})
 }

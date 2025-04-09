@@ -1,10 +1,11 @@
 package history
 
 import (
-	"encoding/json"
 	"starPivot/internal/data"
+	"starPivot/internal/model"
 
 	"github.com/cloudwego/eino/schema"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -20,61 +21,83 @@ func NewDatabaseChatHistory(db *gorm.DB) *PostgresChatHistory {
 
 func (h *PostgresChatHistory) GetChatHistory(username string, chatID string) ([]*schema.Message, error) {
 	chatHistory := make([]*schema.Message, 0)
+	dialogue := data.Dialogue{}
+	err := h.db.Where("username = ? AND id = ?", username, chatID).First(&dialogue).Error
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return nil, err
+	}
+	if err == gorm.ErrRecordNotFound {
+		return nil, model.ErrChatHistoryNotFound
+	}
 
-	dbHistory := data.ChatHistory{}
-	err := h.db.Where("username = ? AND id = ?", username, chatID).Find(&dbHistory).Error
+	messages := []data.Message{}
+	err = h.db.Where("dialogue_id = ?", dialogue.ID).Order("seq_num ASC").Find(&messages).Error
 	if err != nil {
 		return nil, err
 	}
 
-	err = json.Unmarshal([]byte(dbHistory.ChatMessage), &chatHistory)
-	if err != nil {
-		return nil, err
+	for _, message := range messages {
+		chatHistory = append(chatHistory, &schema.Message{
+			Role:    schema.RoleType(message.Role),
+			Content: message.Content,
+		})
 	}
 
 	return chatHistory, nil
 }
 
 func (h *PostgresChatHistory) AddChatHistory(username string, chatID string, message *schema.Message) error {
-	messageBytes, err := json.Marshal(message)
-	if err != nil {
+	// 如果 dialogue 不存在则创建
+	dialogue := data.Dialogue{}
+	err := h.db.Where("username = ? AND id = ?", username, chatID).First(&dialogue).Error
+	if err != nil && err != gorm.ErrRecordNotFound {
 		return err
 	}
-	dbHistory := data.ChatHistory{
-		ID:          chatID,
-		Username:    username,
-		ChatMessage: string(messageBytes),
+	if err == gorm.ErrRecordNotFound {
+		dialogue.ID = chatID
+		dialogue.Username = username
+		err = h.db.Create(&dialogue).Error
+		if err != nil {
+			return err
+		}
 	}
-	return h.db.Create(&dbHistory).Error
+
+	// 查询同一对话的最新message的seq_num
+	var latestMessage data.Message
+	err = h.db.Where("dialogue_id = ?", dialogue.ID).Order("seq_num DESC").First(&latestMessage).Error
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return err
+	}
+	if err == gorm.ErrRecordNotFound {
+		latestMessage.SeqNum = 0
+	}
+
+	msg := data.Message{
+		ID:         uuid.New().String(),
+		DialogueID: dialogue.ID,
+		Role:       string(message.Role),
+		Content:    message.Content,
+		SeqNum:     latestMessage.SeqNum + 1,
+	}
+	return h.db.Create(&msg).Error
 }
 
 func (h *PostgresChatHistory) DeleteChatHistory(username string, chatID string) error {
-	return h.db.Where("username = ? AND id = ?", username, chatID).Delete(&data.ChatHistory{}).Error
+	// 删除 dialogue 和 message
+	if err := h.db.Where("username = ? AND id = ?", username, chatID).Delete(&data.Dialogue{}).Error; err != nil {
+		return err
+	}
+	if err := h.db.Where("dialogue_id = ?", chatID).Delete(&data.Message{}).Error; err != nil {
+		return err
+	}
+	return nil
 }
 
 func (h *PostgresChatHistory) ListChatIDByUsername(username string) ([]string, error) {
 	chatIDs := make([]string, 0)
-	err := h.db.Model(&data.ChatHistory{}).Where("username = ?", username).Distinct().Pluck("id", &chatIDs).Error
+	err := h.db.Model(&data.Dialogue{}).Where("username = ?", username).Distinct().Pluck("id", &chatIDs).Error
 	if err != nil {
 		return nil, err
 	}
 	return chatIDs, nil
-}
-
-func (h *PostgresChatHistory) ListChatHistoryByUsername(username string) ([]*schema.Message, error) {
-	chatHistory := make([]*schema.Message, 0)
-	dbHistory := make([]data.ChatHistory, 0)
-	err := h.db.Where("username = ?", username).Find(&dbHistory).Error
-	if err != nil {
-		return nil, err
-	}
-	for _, history := range dbHistory {
-		chat := schema.Message{}
-		err = json.Unmarshal([]byte(history.ChatMessage), &chat)
-		if err != nil {
-			return nil, err
-		}
-		chatHistory = append(chatHistory, &chat)
-	}
-	return chatHistory, nil
 }

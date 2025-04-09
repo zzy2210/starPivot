@@ -120,12 +120,12 @@ func (s *Server) registerRoutes() {
 	chatRouter.Use(s.chatMiddleware)
 	chatRouter.POST("/chat", s.handleChat)
 	chatRouter.GET("/ids", s.handleListChatIDs)
-	chatRouter.POST("/new", s.handleNewChat)
 	chatRouter.DELETE("/:chatID", s.handleDeleteChat)
 	chatRouter.GET("/:chatID", s.handleGetChatHistory)
 
 	// 配置接口
-	chatRouter.POST("/config", s.handleConfig)
+	configRouter := s.echo.Group("/config")
+	configRouter.POST("/model", s.handleConfig)
 
 	s.logger.Info("routes registered")
 }
@@ -147,7 +147,7 @@ func (s *Server) chatMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 // Start 启动服务器
 func (s *Server) Start() error {
 	s.logger.WithField("port", s.cfg.ServerConfig.Port).Info("server start")
-	return s.echo.Start(s.cfg.ServerConfig.Port)
+	return s.echo.Start(fmt.Sprintf(":%s", s.cfg.ServerConfig.Port))
 }
 
 // Shutdown 优雅关闭服务器
